@@ -1,0 +1,102 @@
+const bcrypt = require("bcrypt");
+const mongoose = require("mongoose");
+const User = require("../models/user");
+
+exports.updatePassword = async (req, res, next) => {
+  try {
+    const _id = req._id;
+    const { password, newPassword } = req.body;
+
+    if (!password || !newPassword) {
+      return res.status(400).json({
+        message: "Password required",
+      });
+    }
+    const user = await User.findById(_id);
+    const hashedPassword = user.password;
+    const verifyPassword = await bcrypt.compare(password, hashedPassword);
+
+    if (!verifyPassword) {
+      return res.status(400).json({
+        message: "Incorrect Password",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    const newHashedPassword = await bcrypt.hash(newPassword, salt);
+
+    const updatedUser = await User.findByIdAndUpdate(
+      _id,
+      { password: newHashedPassword },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};
+
+exports.updatePersonalInfo = async (req, res, next) => {
+  const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+  const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+  try {
+    const _id = req._id;
+    const { username, email, phone } = req.body;
+
+    const user = await User.findById(_id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    let updateFields = {};
+
+    if (username) {
+      updateFields.username = username;
+    }
+
+    if (user.phone && phone) {
+      if (!phoneRegex.test(phone)) {
+        return res.status(400).json({
+          message: "Invalid phone number format",
+        });
+      }
+      updateFields.phone = phone;
+    }
+
+    if (user.email && email) {
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          message: "Invalid email address format",
+        });
+      }
+      updateFields.email = email;
+    }
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({
+        message: "No valid fields provided for update",
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(_id, updateFields, {
+      new: true,
+      runValidators: true,
+    });
+
+    return res.status(200).json({
+      message: "User information updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};
