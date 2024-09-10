@@ -69,6 +69,7 @@ exports.signUp = async (req, res, next) => {
       email: updatedEmail || null,
       phone: phone || null,
       password: hashedPassword,
+      balance: 0,
     });
 
     const obj = {
@@ -76,7 +77,7 @@ exports.signUp = async (req, res, next) => {
       email: newUser.email || newUser.phone,
     };
     const jwtSecret = process.env.JWT_SECRET;
-    const token = jwt.sign(obj, jwtSecret); // No expiration
+    const token = jwt.sign(obj, jwtSecret); 
 
     return res.status(201).json({
       message: "Account created successfully",
@@ -105,7 +106,6 @@ exports.signIn = async (req, res, next) => {
       return res.status(400).json({ message: "Password is required" });
     }
 
-    // Determine the query based on whether email or phone is provided
     let query = {};
     if (email) {
       const updatedEmail = email.toLowerCase();
