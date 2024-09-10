@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const otpGenerator = require("otp-generator");
 const sendEmail = require("../helper/handleNodeMailer");
 const path = require("path");
+const handleVerifyEmail = require("../helper/handleVerifyEmail");
 
 require("dotenv").config();
 
@@ -18,7 +19,7 @@ exports.signUp = async (req, res, next) => {
 
     if (!email && !phone) {
       return res.status(400).json({
-        message: "Either email or phone number is required",
+        message: "Email or phone number is required",
       });
     }
 
@@ -34,7 +35,12 @@ exports.signUp = async (req, res, next) => {
           "Password must be at least 8 characters long, with at least one uppercase letter, one lowercase letter, and one special character.",
       });
     }
-
+    let existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({
+        message: "Username is already taken",
+      });
+    }
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
     const phoneRegex = /^\+?[1-9]\d{1,14}$/;
 
@@ -52,12 +58,17 @@ exports.signUp = async (req, res, next) => {
       });
     }
 
-    let existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return res.status(400).json({
-        message: "Username is already taken",
-      });
+    if (email) {
+      // Verify the email before proceeding
+      const isEmailValid = await handleVerifyEmail(updatedEmail);
+      if (!isEmailValid) {
+        return res.status(400).json({
+          message: "Email does not exist or is invalid.",
+        });
+      }
     }
+
+  
 
     if (email) {
       existingUser = await User.findOne({ email: updatedEmail });
@@ -105,13 +116,13 @@ exports.signUp = async (req, res, next) => {
 
     return res.status(201).json({
       message: "Account created successfully",
-      newUser,
+      user:newUser,
       token,
       otp,
     });
   } catch (error) {
     return res.status(500).json({
-      message: "Internal Server Error",
+      message: error.message,
       error: error.message,
     });
   }
