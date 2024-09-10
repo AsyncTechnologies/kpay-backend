@@ -6,6 +6,7 @@ const UserSchema = new Schema({
   email: String,
   password: String,
   phone: String,
+  isVerified: Boolean,
   balance: String,
 });
 

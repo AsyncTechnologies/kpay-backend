@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 
 require("dotenv").config();
 
+
 exports.signUp = async (req, res, next) => {
   try {
     const { username, email, phone, password } = req.body;
@@ -26,37 +27,34 @@ exports.signUp = async (req, res, next) => {
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
     const phoneRegex = /^\+?[1-9]\d{1,14}$/;
 
-    // Password must be exactly 8 characters long, including at least one lowercase letter, one uppercase letter, and one special character.
-    //   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&])[A-Za-z@$!%*?&]{8}$/;
-
+    // Validate email format if email is provided
     if (email && !emailRegex.test(updatedEmail)) {
       return res.status(400).json({
-        message:
-          "Invalid email format. Ensure it contains '@' and '.' symbols.",
+        message: "Invalid email format. Ensure it contains '@' and '.' symbols.",
       });
     }
 
+    // Validate phone number format if phone is provided
     if (phone && !phoneRegex.test(phone)) {
       return res.status(400).json({
-        message:
-          "Invalid phone number format. Ensure it follows international format.",
+        message: "Invalid phone number format. Ensure it follows international format.",
       });
     }
 
-    console.log(`Testing password: ${password}`); // Log the password
-    //   if (!passwordRegex.test(password)) {
-    //     return res.status(400).json({
-    //       message:
-    //         "Password must be exactly 8 characters long, including at least one lowercase letter, one uppercase letter, and one special character.",
-    //     });
-    //   }
+    // Check if a user with the same username already exists
+    let existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({
+        message: "Username is already taken",
+      });
+    }
 
-    const salt = await bcrypt.genSalt(12);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const existingUser = await User.findOne({
-      $or: [{ email: updatedEmail }, { phone }],
-    });
+    // Check if a user with the same email or phone already exists
+    if (email) {
+      existingUser = await User.findOne({ email: updatedEmail });
+    } else if (phone) {
+      existingUser = await User.findOne({ phone });
+    }
 
     if (existingUser) {
       return res.status(400).json({
@@ -64,20 +62,27 @@ exports.signUp = async (req, res, next) => {
       });
     }
 
+    // Hash the password
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create the new user
     const newUser = await User.create({
       username,
       email: updatedEmail || null,
       phone: phone || null,
       password: hashedPassword,
+      isVerified: false,
       balance: 0,
     });
 
+    // Generate a JWT token for the new user
     const obj = {
       _id: newUser._id,
       email: newUser.email || newUser.phone,
     };
     const jwtSecret = process.env.JWT_SECRET;
-    const token = jwt.sign(obj, jwtSecret); 
+    const token = jwt.sign(obj, jwtSecret);
 
     return res.status(201).json({
       message: "Account created successfully",
@@ -92,7 +97,10 @@ exports.signUp = async (req, res, next) => {
   }
 };
 
-exports.signIn = async (req, res, next) => {
+
+
+
+  exports.signIn = async (req, res, next) => {
   try {
     const { email, phone, password } = req.body;
 

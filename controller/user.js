@@ -42,61 +42,74 @@ exports.updatePassword = async (req, res, next) => {
 };
 
 exports.updatePersonalInfo = async (req, res, next) => {
-  const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-  const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
-  try {
-    const _id = req._id;
-    const { username, email, phone } = req.body;
-
-    const user = await User.findById(_id);
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
-    }
-
-    let updateFields = {};
-
-    if (username) {
-      updateFields.username = username;
-    }
-
-    if (user.phone && phone) {
-      if (!phoneRegex.test(phone)) {
-        return res.status(400).json({
-          message: "Invalid phone number format",
+    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    try {
+      const _id = req._id; 
+      const { username, email, phone } = req.body;
+  
+      const user = await User.findById(_id);
+  
+      if (!user) {
+        return res.status(404).json({
+          message: "User not found",
         });
       }
-      updateFields.phone = phone;
-    }
+  
+      let updateFields = {};
+  
+ 
+      if (username) {
+        const existingUserWithUsername = await User.findOne({ username });
+        if (existingUserWithUsername && existingUserWithUsername._id.toString() !== _id) {
+          return res.status(400).json({
+            message: "Username is already taken",
+          });
+        }
+        updateFields.username = username;
+      }
+  
 
-    if (user.email && email) {
-      if (!emailRegex.test(email)) {
+      if (phone) {
+        if (!phoneRegex.test(phone)) {
+          return res.status(400).json({
+            message: "Invalid phone number format",
+          });
+        }
+        updateFields.phone = phone;
+      }
+  
+     
+      if (email) {
+        if (!emailRegex.test(email)) {
+          return res.status(400).json({
+            message: "Invalid email address format",
+          });
+        }
+        updateFields.email = email;
+      }
+  
+      
+      if (Object.keys(updateFields).length === 0) {
         return res.status(400).json({
-          message: "Invalid email address format",
+          message: "No valid fields provided for update",
         });
       }
-      updateFields.email = email;
-    }
-    if (Object.keys(updateFields).length === 0) {
-      return res.status(400).json({
-        message: "No valid fields provided for update",
+  
+     
+      const updatedUser = await User.findByIdAndUpdate(_id, updateFields, {
+        new: true,
+        runValidators: true, 
+      });
+  
+      return res.status(200).json({
+        message: "User information updated successfully",
+        user: updatedUser,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        message: "Internal Server Error",
+        error: error.message,
       });
     }
-
-    const updatedUser = await User.findByIdAndUpdate(_id, updateFields, {
-      new: true,
-      runValidators: true,
-    });
-
-    return res.status(200).json({
-      message: "User information updated successfully",
-      user: updatedUser,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: "Internal Server Error",
-    });
-  }
-};
+  };
