@@ -24,17 +24,24 @@ exports.signUp = async (req, res, next) => {
       return res.status(400).json({ message: "Password is required" });
     }
 
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\W).{8,}$/;
+
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long, with at least one uppercase letter, one lowercase letter, and one special character.",
+      });
+    }
+
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
     const phoneRegex = /^\+?[1-9]\d{1,14}$/;
 
-    // Validate email format if email is provided
     if (email && !emailRegex.test(updatedEmail)) {
       return res.status(400).json({
         message: "Invalid email format. Ensure it contains '@' and '.' symbols.",
       });
     }
 
-    // Validate phone number format if phone is provided
     if (phone && !phoneRegex.test(phone)) {
       return res.status(400).json({
         message: "Invalid phone number format. Ensure it follows international format.",
@@ -96,6 +103,7 @@ exports.signUp = async (req, res, next) => {
     });
   }
 };
+
 
 
 
