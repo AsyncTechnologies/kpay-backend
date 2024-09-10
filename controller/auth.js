@@ -1,9 +1,11 @@
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const otpGenerator = require("otp-generator");
+const sendEmail = require("../helper/handleNodeMailer");
+const path = require("path");
 
 require("dotenv").config();
-
 
 exports.signUp = async (req, res, next) => {
   try {
@@ -38,17 +40,18 @@ exports.signUp = async (req, res, next) => {
 
     if (email && !emailRegex.test(updatedEmail)) {
       return res.status(400).json({
-        message: "Invalid email format. Ensure it contains '@' and '.' symbols.",
+        message:
+          "Invalid email format. Ensure it contains '@' and '.' symbols.",
       });
     }
 
     if (phone && !phoneRegex.test(phone)) {
       return res.status(400).json({
-        message: "Invalid phone number format. Ensure it follows international format.",
+        message:
+          "Invalid phone number format. Ensure it follows international format.",
       });
     }
 
-    // Check if a user with the same username already exists
     let existingUser = await User.findOne({ username });
     if (existingUser) {
       return res.status(400).json({
@@ -56,7 +59,6 @@ exports.signUp = async (req, res, next) => {
       });
     }
 
-    // Check if a user with the same email or phone already exists
     if (email) {
       existingUser = await User.findOne({ email: updatedEmail });
     } else if (phone) {
@@ -69,11 +71,9 @@ exports.signUp = async (req, res, next) => {
       });
     }
 
-    // Hash the password
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create the new user
     const newUser = await User.create({
       username,
       email: updatedEmail || null,
@@ -83,7 +83,19 @@ exports.signUp = async (req, res, next) => {
       balance: 0,
     });
 
-    // Generate a JWT token for the new user
+    const otp = otpGenerator.generate(4, {
+      lowerCaseAlphabets: false,
+      specialChars: false,
+      upperCaseAlphabets: false,
+    });
+
+    if (email) {
+      const htmlFilePath = path.join(__dirname, "../html/emailTemplate.html");
+      const subject = "Account Verification Request";
+
+      await sendEmail(updatedEmail, subject, htmlFilePath, otp);
+    }
+
     const obj = {
       _id: newUser._id,
       email: newUser.email || newUser.phone,
@@ -95,6 +107,7 @@ exports.signUp = async (req, res, next) => {
       message: "Account created successfully",
       newUser,
       token,
+      otp,
     });
   } catch (error) {
     return res.status(500).json({
@@ -104,11 +117,7 @@ exports.signUp = async (req, res, next) => {
   }
 };
 
-
-
-
-
-  exports.signIn = async (req, res, next) => {
+exports.signIn = async (req, res, next) => {
   try {
     const { email, phone, password } = req.body;
 
