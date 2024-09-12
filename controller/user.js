@@ -89,6 +89,15 @@ exports.updatePersonalInfo = async (req, res, next) => {
           message: "Invalid phone number format",
         });
       }
+      const existingUserWithPhone = await User.findOne({ phone });
+      if (
+        existingUserWithPhone &&
+        existingUserWithPhone._id.toString() !== _id
+      ) {
+        return res.status(400).json({
+          message: "Phone number is already associated with another account",
+        });
+      }
       updateFields.phone = phone;
     }
 
@@ -96,6 +105,15 @@ exports.updatePersonalInfo = async (req, res, next) => {
       if (!emailRegex.test(email)) {
         return res.status(400).json({
           message: "Invalid email address format",
+        });
+      }
+      const existingUserWithEmail = await User.findOne({ email });
+      if (
+        existingUserWithEmail &&
+        existingUserWithEmail._id.toString() !== _id
+      ) {
+        return res.status(400).json({
+          message: "Email address is already associated with another account",
         });
       }
       updateFields.email = email;
@@ -123,6 +141,7 @@ exports.updatePersonalInfo = async (req, res, next) => {
     });
   }
 };
+
 
 exports.getUserDetails = async (req, res, next) => {
   try {
