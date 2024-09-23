@@ -149,7 +149,7 @@ exports.getUserDetails = async (req, res, next) => {
 
     const userData = await User.findById(_id).select("-password");
 
-    return res.status(200).json({ message: "User details", userData });
+    return res.status(200).json({ message: "User details==>", userData });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error" });
   }
