@@ -142,7 +142,6 @@ exports.updatePersonalInfo = async (req, res, next) => {
   }
 };
 
-
 exports.getUserDetails = async (req, res, next) => {
   try {
     const _id = req._id;

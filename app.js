@@ -4,6 +4,7 @@ const cors = require("cors");
 const { default: mongoose } = require("mongoose");
 const authRoutes = require("./router/auth");
 const userRoutes = require("./router/user");
+const mainRoutes = require("./router/main");
 
 require("dotenv").config();
 const PORT = process.env.PORT;
@@ -14,6 +15,7 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
+app.use("/main", mainRoutes);
 
 mongoose.connect(MONGO_URL).then(() => {
     console.log("database connected", PORT);
