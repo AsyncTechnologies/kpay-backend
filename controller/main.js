@@ -35,7 +35,7 @@ exports.SearchFriend = async (req, res, next) => {
 };
 
 exports.SendMoney = async (req, res, next) => {
-  const { TransactionTo, TransactionFrom, TransactionAmount, Status,PaymentType } =
+  const { TransactionTo, TransactionFrom, TransactionAmount, Status,PaymentType , note} =
     req.body;
 
   try {
@@ -54,7 +54,8 @@ exports.SendMoney = async (req, res, next) => {
       TransactionFrom: TransactionFrom,
       TransactionAmount: TransactionAmount,
       Status: Status,
-      PaymentType: PaymentType
+      PaymentType: PaymentType,
+      note: note
     });
 
     if (transaction) {
@@ -109,3 +110,43 @@ exports.getTransaction = async (req, res, next) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+
+exports.UpdateRequestStatus = async(req, res) => {
+  const {transactionsid,TransactionTo, TransactionFrom, TransactionAmount,PaymentType} = req.body;
+
+
+  try {
+
+  const PlusAmount = await User.findOne({ _id: TransactionTo._id });
+  const minusFromAmount = await User.findOne({ _id: TransactionFrom._id });
+
+
+  const plustheamount = parseFloat( PlusAmount.balance) +  parseFloat(TransactionAmount)  
+  const minustheamount = parseFloat( minusFromAmount.balance) -  parseFloat(TransactionAmount) 
+  
+  PlusAmount.balance = JSON.stringify(plustheamount)
+  minusFromAmount.balance = JSON.stringify(minustheamount)
+
+  await PlusAmount.save()
+  await minusFromAmount.save()
+  
+
+  const transactionType = await Transaction.findOne({_id: transactionsid})
+
+  transactionType.Status = "Send"
+
+  await transactionType.save()
+
+  return res.status(200).send({
+    message: "Transaction status updated successfully",
+    transactionType,
+  });
+
+} catch (error) {
+  return res.status(500).send({ message: "Error updating transaction", error: error.message });
+
+}
+
+  // console.log("transactionsid",transactionsid)
+}

@@ -18,6 +18,9 @@ const transactionSchema = new Schema({
     },
     PaymentType:{
         type: String,
+    },
+    note:{
+        type: String
     }
 
 },{
