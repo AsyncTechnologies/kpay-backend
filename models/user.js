@@ -8,6 +8,12 @@ const UserSchema = new Schema({
   phone: String,
   isVerified: Boolean,
   balance: String,
+  friends: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
 });
 
 const User = mongoose.model("User", UserSchema);

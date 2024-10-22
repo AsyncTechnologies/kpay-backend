@@ -146,10 +146,25 @@ exports.getUserDetails = async (req, res, next) => {
   try {
     const _id = req._id;
 
-    const userData = await User.findById(_id).select("-password");
+    const userData = await User.findById(_id)
+        .select("-password")
+        .populate({ path: "friends", select: "username email phone _id" });
+
 
     return res.status(200).json({ message: "User details==>", userData });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+
+exports.getAllContactsFromDB = async (req, res, next)=>{
+  try {
+
+    const getAllContactsUsers = await User.find({ phone: { $ne: null } });
+
+    return res.status(200).json({ users: getAllContactsUsers });
+  } catch (error) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+}

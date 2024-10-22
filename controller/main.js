@@ -68,6 +68,13 @@ exports.SendMoney = async (req, res, next) => {
         return res.status(404).send({ error: "User not found" });
       }
 
+      const updateMyFriendsArray = MinusFromAmount.friends.includes(TransactionTo)
+
+      if(!updateMyFriendsArray){
+        MinusFromAmount.friends.push(TransactionTo)
+      }
+      
+
       const updatedPlusBalance =
         parseFloat(PlusToAmount.balance) + transactionAmount;
       const updatedMinusBalance =
@@ -78,6 +85,7 @@ exports.SendMoney = async (req, res, next) => {
 
       await PlusToAmount.save();
       await MinusFromAmount.save();
+      
 
       res.status(201).json({ message: "Transaction successful", transaction });
     } else {
@@ -131,6 +139,14 @@ exports.UpdateRequestStatus = async (req, res) => {
     const PlusAmount = await User.findOne({ _id: TransactionTo._id });
     const minusFromAmount = await User.findOne({ _id: TransactionFrom._id });
 
+
+    const updateMyFriendsArray = minusFromAmount.friends.includes(TransactionTo)
+
+    if(!updateMyFriendsArray){
+      minusFromAmount.friends.push(TransactionTo)
+    }
+    
+
     const plustheamount =
       parseFloat(PlusAmount.balance) + parseFloat(TransactionAmount);
     const minustheamount =
@@ -158,7 +174,6 @@ exports.UpdateRequestStatus = async (req, res) => {
       .send({ message: "Error updating transaction", error: error.message });
   }
 
-  // console.log("transactionsid",transactionsid)
 };
 
 exports.DepositMoney = async (req, res) => {
@@ -187,3 +202,6 @@ exports.DepositMoney = async (req, res) => {
     });
   }
 };
+
+
+
