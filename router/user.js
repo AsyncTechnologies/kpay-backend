@@ -10,4 +10,5 @@ router.get("/get-userDetails", isAuth, user.getUserDetails);
 router.get("/getAllContactsFromDB", isAuth, user.getAllContactsFromDB);
 
 
+
 module.exports = router;

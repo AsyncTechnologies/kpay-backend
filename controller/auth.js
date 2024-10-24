@@ -13,6 +13,8 @@ exports.signUp = async (req, res, next) => {
     const { username, email, phone, password } = req.body;
     const updatedEmail = email?.toLowerCase();
 
+    
+
     if (!username) {
       return res.status(400).json({ message: "Username is required" });
     }
