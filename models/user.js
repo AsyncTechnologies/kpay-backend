@@ -14,6 +14,7 @@ const UserSchema = new Schema({
       ref: "User",
     },
   ],
+  customerId: String,
 });
 
 const User = mongoose.model("User", UserSchema);
