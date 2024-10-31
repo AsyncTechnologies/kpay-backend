@@ -2,7 +2,7 @@ const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
 const User = require("../models/user");
 const Transaction = require("../models/transaction");
-const stripe = require("stripe")('sk_test_51JeezZLPp9miWmIeBehyA5nUgItfdPO17LA26XivmYbKAtVOQgCjLeQ9SsY5geg6L42hrcIRru3FUd0LwjkkZrQ600r7IKo9ZR');
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 
 //create  a custommer id
