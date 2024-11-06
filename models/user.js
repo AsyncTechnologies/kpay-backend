@@ -7,7 +7,10 @@ const UserSchema = new Schema({
   password: String,
   phone: String,
   isVerified: Boolean,
-  balance: String,
+  balance: {
+    default: "0",
+    type:String
+  },
   friends: [
     {
       type: mongoose.Schema.Types.ObjectId,

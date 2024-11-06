@@ -177,12 +177,13 @@ exports.UpdateRequestStatus = async (req, res) => {
 };
 
 exports.DepositMoney = async (req, res) => {
-  const { money } = req.body;
-
-  const id = req._id;
-
+  
   try {
+    const { money } = req.body;
+    const id = req._id;
+    
     const userData = await User.findOne({ _id: id });
+    console.log(",,,,,,,",typeof money, id,userData)
     const oldMoney = JSON.parse(userData.balance);
     const newMoney = JSON.parse(money);
     const PlusMoney = oldMoney + newMoney;
