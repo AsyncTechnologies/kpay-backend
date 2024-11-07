@@ -8,14 +8,16 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 //create  a custommer id
 exports.createCustomer = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, phone } = req.body;
 
 
-    const findUser = await User.findOne({ email: email });
+    const findUser = await User.findOne({
+      $or: [{ email: email }, { phone: phone }]
+    });
 
 
     if (!findUser) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(400).json({ error: 'User not found' });
     }
 
 
