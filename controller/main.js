@@ -33,6 +33,68 @@ exports.SearchFriend = async (req, res, next) => {
   }
 };
 
+// exports.SendMoney = async (req, res, next) => {
+//   const {
+//     TransactionTo,
+//     TransactionFrom,
+//     TransactionAmount,
+//     Status,
+//     PaymentType,
+//     note,
+//   } = req.body;
+
+//   try {
+//     const transactionAmount = parseFloat(TransactionAmount);
+
+//     const PlusToAmount = await User.findOne({ _id: TransactionTo });
+//     const MinusFromAmount = await User.findOne({ _id: TransactionFrom });
+
+//     if (parseFloat(MinusFromAmount.balance) < transactionAmount) {
+//       res.status(400).send({ error: "Insufficient balance" });
+//       return;
+//     }
+
+//     const transaction = await Transaction.create({
+//       TransactionTo: TransactionTo,
+//       TransactionFrom: TransactionFrom,
+//       TransactionAmount: TransactionAmount,
+//       Status: Status,
+//       PaymentType: PaymentType,
+//       note: note,
+//     });
+
+//     if (transaction) {
+//       if (!PlusToAmount || !MinusFromAmount) {
+//         return res.status(404).send({ error: "User not found" });
+//       }
+
+//       const updateMyFriendsArray = MinusFromAmount.friends.includes(TransactionTo)
+
+//       if(!updateMyFriendsArray){
+//         MinusFromAmount.friends.push(TransactionTo)
+//       }
+      
+
+//       const updatedPlusBalance =
+//         parseFloat(PlusToAmount.balance) + transactionAmount;
+//       const updatedMinusBalance =
+//         parseFloat(MinusFromAmount.balance) - transactionAmount;
+
+//       PlusToAmount.balance = updatedPlusBalance.toString();
+//       MinusFromAmount.balance = updatedMinusBalance.toString();
+
+//       await PlusToAmount.save();
+//       await MinusFromAmount.save();
+      
+
+//       res.status(201).json({ message: "Transaction successful", transaction });
+//     } else {
+//       res.status(404).json({ message: "Transaction Failed" });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// };
 exports.SendMoney = async (req, res, next) => {
   const {
     TransactionTo,
@@ -46,14 +108,44 @@ exports.SendMoney = async (req, res, next) => {
   try {
     const transactionAmount = parseFloat(TransactionAmount);
 
+    // Find the users involved in the transaction
     const PlusToAmount = await User.findOne({ _id: TransactionTo });
     const MinusFromAmount = await User.findOne({ _id: TransactionFrom });
 
-    if (parseFloat(MinusFromAmount.balance) < transactionAmount) {
-      res.status(400).send({ error: "Insufficient balance" });
-      return;
+    if (!PlusToAmount || !MinusFromAmount) {
+      return res.status(404).send({ error: "User not found" });
     }
 
+    // Handle "Send" status
+    if (Status === "Send") {
+      // Check for sufficient balance
+      if (parseFloat(MinusFromAmount.balance) < transactionAmount) {
+        return res.status(400).send({ error: "Insufficient balance" });
+      }
+
+      // Update balances
+      const updatedPlusBalance =
+        parseFloat(PlusToAmount.balance) + transactionAmount;
+      const updatedMinusBalance =
+        parseFloat(MinusFromAmount.balance) - transactionAmount;
+
+      PlusToAmount.balance = updatedPlusBalance.toString();
+      MinusFromAmount.balance = updatedMinusBalance.toString();
+
+      // Add the recipient to the sender's friends list if not already added
+      if (!MinusFromAmount.friends.includes(TransactionTo)) {
+        MinusFromAmount.friends.push(TransactionTo);
+      }
+
+      // Save updated user data
+      await PlusToAmount.save();
+      await MinusFromAmount.save();
+    } else if (Status === "Request") {
+      // For "Request" status, no balance updates should occur.
+      // Optionally, you can perform some other actions if needed, like sending a notification.
+    }
+
+    // Create the transaction record
     const transaction = await Transaction.create({
       TransactionTo: TransactionTo,
       TransactionFrom: TransactionFrom,
@@ -64,29 +156,6 @@ exports.SendMoney = async (req, res, next) => {
     });
 
     if (transaction) {
-      if (!PlusToAmount || !MinusFromAmount) {
-        return res.status(404).send({ error: "User not found" });
-      }
-
-      const updateMyFriendsArray = MinusFromAmount.friends.includes(TransactionTo)
-
-      if(!updateMyFriendsArray){
-        MinusFromAmount.friends.push(TransactionTo)
-      }
-      
-
-      const updatedPlusBalance =
-        parseFloat(PlusToAmount.balance) + transactionAmount;
-      const updatedMinusBalance =
-        parseFloat(MinusFromAmount.balance) - transactionAmount;
-
-      PlusToAmount.balance = updatedPlusBalance.toString();
-      MinusFromAmount.balance = updatedMinusBalance.toString();
-
-      await PlusToAmount.save();
-      await MinusFromAmount.save();
-      
-
       res.status(201).json({ message: "Transaction successful", transaction });
     } else {
       res.status(404).json({ message: "Transaction Failed" });
