@@ -66,12 +66,15 @@ exports.signUp = async (req, res, next) => {
           message: "Email does not exist or is invalid.",
         });
       }
+      existingUser = await User.findOne({ email: updatedEmail });
+      if (existingUser) {
+        return res.status(400).json({
+          message: "Email already exists.",
+        });
+      }
     }
 
-  
-
     if (email) {
-      existingUser = await User.findOne({ email: updatedEmail });
     } else if (phone) {
       existingUser = await User.findOne({ phone });
     }
@@ -85,14 +88,14 @@ exports.signUp = async (req, res, next) => {
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = await User.create({
-      username,
-      email: updatedEmail || null,
-      phone: phone || null,
-      password: hashedPassword,
-      isVerified: false,
-      balance: 0,
-    });
+    // const newUser = await User.create({
+    //   username,
+    //   email: updatedEmail || null,
+    //   phone: phone || null,
+    //   password: hashedPassword,
+    //   isVerified: false,
+    //   balance: 0,
+    // });
 
     const otp = otpGenerator.generate(4, {
       lowerCaseAlphabets: false,
@@ -107,16 +110,13 @@ exports.signUp = async (req, res, next) => {
       await sendEmail(updatedEmail, subject, htmlFilePath, otp);
     }
 
-    const obj = {
-      _id: newUser._id,
-      email: newUser.email || newUser.phone,
-    };
-    const jwtSecret = process.env.JWT_SECRET;
-    const token = jwt.sign(obj, jwtSecret);
+    const token = jwt.sign(
+      { username, email: updatedEmail, phone, password, otp },
+      process.env.JWT_SECRET
+    );
 
     return res.status(201).json({
-      message: "Account created successfully",
-      user:newUser,
+      message: "OTP sent successfully.",
       token,
       otp,
     });
@@ -180,5 +180,49 @@ exports.signIn = async (req, res, next) => {
       message: "Internal Server Error",
       error: error.message,
     });
+  }
+};
+
+exports.verifyOtpAndCreateUser = async (req, res) => {
+  try {
+    const { otp, token } = req.body;
+
+    if (!otp || !token) {
+      return res.status(400).json({ message: "OTP and token are required." });
+    }
+
+    const jwtSecret = process.env.JWT_SECRET;
+    const decoded = jwt.verify(token, jwtSecret);
+
+    if (decoded.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP." });
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(decoded.password, salt);
+
+    const newUser = await User.create({
+      username: decoded.username,
+      email: decoded.email || null,
+      phone: decoded.phone || null,
+      password: hashedPassword,
+      isVerified: true,
+      balance: 0,
+    });
+    const payload = {
+      email: newUser.email,
+      phone: newUser.phone,
+      _id: newUser._id,
+    };
+
+    const newToken = jwt.sign(payload, jwtSecret);
+
+    return res.status(201).json({
+      message: "User created successfully.",
+      user: newUser,
+      token: newToken,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
